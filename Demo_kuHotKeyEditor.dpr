@@ -2,7 +2,7 @@ program Demo_kuHotKeyEditor;
 
 uses
   Forms,
-  kuHotKeys;
+  kuHotKeysEditor;
 
 {$R *.res}
 

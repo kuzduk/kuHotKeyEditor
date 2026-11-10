@@ -1,427 +1,260 @@
 unit kuHotKeys;
 {
-Р РµРґР°РєС‚РѕСЂ РіРѕСЂСЏС‡РёС… РєР»Р°РІРёС€ Delphi
-РћС‚Р»Р°РІР»РёРІР°РµС‚ РЅРµ С‚РѕР»СЊРєРѕ Ctrl, Shift, Alt РЅРѕ Рё Win
-РђРІС‚РѕСЂ Р“РѕСЂРєСѓРЅ Р“СЂРёРіРѕСЂРёР№ https://kuzduk.ru/delphi/kulibrary
+Автор Горкун Григорий
+https://kuzduk.ru/delphi/kulibrary
+Key - клавиша-не-модификатор (A..Z, 1..2, F1-F12, Del, Ins...)
+Mod - клавиша моджификатор CSAW
+CSAW - Ctrl, Shift, Alt, Win
 
-РќРЈР–РќРћ РЎР”Р•Р›РђРўР¬:
-Р—Р°РїСЂРµС‚РёС‚СЊ РІ ComboBox РІСЃРµ HK: Up Dn Left Right PgUp PgDown С‡С‚РѕР± РїСЂРё OnKeyDown РѕРЅРё РЅРµ РјРµРЅСЏР»Рё СЃС‚СЂРѕРєСѓ Р° РґРµР»Р°Р»Рё С‚РѕР»СЊРєРѕ KeyToStr
-Р—Р°РїСЂРµС‚РёС‚СЊ РїРѕС‚СЂРµСЋ С„РѕРєСѓСЃР° РїРѕ Tab РІ ComboBox Рё Edit1
-РџРµСЂРµС…РІР°С‚РёС‚СЊ РІСЃРµ РіР»РѕР±Р°Р»СЊРЅС‹Рµ РєР»Р°РІРёС€Рё СЃРёСЃС‚РµРјС‹ С‡С‚РѕР± РѕРЅРё РЅРµ РІС‹РїРѕРЅРіСЏР»РёСЃСЊ, Р° С‚РѕР»СЊРєРѕ  РѕС‚РѕР±СЂР°Р¶Р°Р»РёСЃСЊ СЂРµРґР°РєС‚РѕСЂРµ, РЅР°РїСЂРёРјРµСЂ Win С‡С‚РѕР± РЅРµ РІРєР»СЋС‡Р°Р»РѕСЃСЊ РјРµРЅСЋ РїСѓСЃРє, РёР»Рё РЅР°РїСЂРёРјРµСЂ Win + E
+ShiftState - набор модификаторов ssCtrl, ssShift, ssAlt. БЕЗ клавиши Win
+
+ShortCutToText - uses Vcl.Menus
+GetKeyNameText - uses Winapi.Windows
 }
 interface
 
 uses
-  Windows, SysUtils, Classes, Forms, StdCtrls, Controls, Dialogs, Buttons;
-
-type
-  TFormHK = class(TForm)
-    chWin: TCheckBox;
-    chAlt: TCheckBox;
-    chShift: TCheckBox;
-    chCtrl: TCheckBox;
-    ComboBox1: TComboBox;
-    Edit1: TEdit;
-    ListBox1: TListBox;
-    btnAdd: TSpeedButton;
-    btnDel: TSpeedButton;
-
-    procedure Edit1KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure Edit1KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
-
-    procedure chCtrlClick(Sender: TObject);
-    procedure chShiftClick(Sender: TObject);
-    procedure chAltClick(Sender: TObject);
-    procedure chWinClick(Sender: TObject);
-    procedure ModToCheckBox(const ModStr: string = '');
-
-    procedure ComboBox1Change(Sender: TObject);
-    procedure ComboBox1KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-
-    procedure btnAddClick(Sender: TObject);
-    procedure btnDelClick(Sender: TObject);
-
-    private
-      _KeyDown: Boolean;
-  end;
-
-var
-  FormHK: TFormHK;
-
-function kuHotKeyEditorExecute: Boolean;
+  Windows, SysUtils, Classes;
 
 
 //Key ~ Mod ~ Str
 function  ModToStr: string; overload;
 function  ModToStr(sMod: word): string; overload;
 function  KeyToStr(Key: word): string;
+
+function  StrToKey(const KeyStr: string): DWord;
 procedure StrToKeyMod(ShortcutStr: string; var vKey, vMod: word);
 
 
 //Key Down
 function KeyDownly(Key: integer): Boolean;
+
 function CtrlDown: Boolean;
 function ShiftDown: Boolean;
 function AltDown: Boolean;
 function WinDown: Boolean;
 
+function CtrlOnly: Boolean;
+function ShiftOnly: Boolean;
+function AltOnly: Boolean;
 
-
+function ModDown(AMods: string): Boolean;
+function NoCSA: Boolean;
 
 
 implementation
 
-{$R *.dfm}
 
 
+{$REGION '  Key ~ Mod ~ Str  '}
 
-//============================================================================== kuHotKeyEditorExecute
-function kuHotKeyEditorExecute: Boolean;
+
+//------------------------------------------------------------------------------
+function StrToKey(const KeyStr: string): DWord;
 begin
+  if SameText(KeyStr, 'Space') or SameText(KeyStr, ' ') then
+    Result := VK_SPACE
+  else if SameText(KeyStr, 'Enter') or SameText(KeyStr, 'Return') then
+    Result := VK_RETURN
+  else if SameText(KeyStr, 'Tab') then
+    Result := VK_TAB
+  else if SameText(KeyStr, 'Esc') or SameText(KeyStr, 'Escape') then
+    Result := VK_ESCAPE
+  else if SameText(KeyStr, 'Backspace') then
+    Result := VK_BACK
+  else if SameText(KeyStr, 'Insert') then
+    Result := VK_INSERT
+  else if SameText(KeyStr, 'Delete') then
+    Result := VK_DELETE
+  else if SameText(KeyStr, 'Home') then
+    Result := VK_HOME
+  else if SameText(KeyStr, 'End') then
+    Result := VK_END
+  else if SameText(KeyStr, 'PageUp') then
+    Result := VK_PRIOR
+  else if SameText(KeyStr, 'PageDown') then
+    Result := VK_NEXT
+  else if SameText(KeyStr, 'Left') then
+    Result := VK_LEFT
+  else if SameText(KeyStr, 'Right') then
+    Result := VK_RIGHT
+  else if SameText(KeyStr, 'Up') then
+    Result := VK_UP
+  else if SameText(KeyStr, 'Down') then
+    Result := VK_DOWN
+  else if SameText(KeyStr, 'PrintScreen') or SameText(KeyStr, 'PrtSc') then
+    Result := VK_SNAPSHOT
+  else if SameText(KeyStr, 'ScrollLock') then
+    Result := VK_SCROLL
+  else if SameText(KeyStr, 'Pause') or SameText(KeyStr, 'Break') then
+    Result := VK_PAUSE
+  else if SameText(KeyStr, 'NumLock') then
+    Result := VK_NUMLOCK
+  else if SameText(KeyStr, 'CapsLock') then
+    Result := VK_CAPITAL
+  // F-клавиши
+  else if SameText(KeyStr, 'F1') then
+    Result := VK_F1
+  else if SameText(KeyStr, 'F2') then
+    Result := VK_F2
+  else if SameText(KeyStr, 'F3') then
+    Result := VK_F3
+  else if SameText(KeyStr, 'F4') then
+    Result := VK_F4
+  else if SameText(KeyStr, 'F5') then
+    Result := VK_F5
+  else if SameText(KeyStr, 'F6') then
+    Result := VK_F6
+  else if SameText(KeyStr, 'F7') then
+    Result := VK_F7
+  else if SameText(KeyStr, 'F8') then
+    Result := VK_F8
+  else if SameText(KeyStr, 'F9') then
+    Result := VK_F9
+  else if SameText(KeyStr, 'F10') then
+    Result := VK_F10
+  else if SameText(KeyStr, 'F11') then
+    Result := VK_F11
+  else if SameText(KeyStr, 'F12') then
+    Result := VK_F12
+  else if SameText(KeyStr, 'F13') then
+    Result := VK_F13
+  else if SameText(KeyStr, 'F14') then
+    Result := VK_F14
+  else if SameText(KeyStr, 'F15') then
+    Result := VK_F15
+  else if SameText(KeyStr, 'F16') then
+    Result := VK_F16
+  else if SameText(KeyStr, 'F17') then
+    Result := VK_F17
+  else if SameText(KeyStr, 'F18') then
+    Result := VK_F18
+  else if SameText(KeyStr, 'F19') then
+    Result := VK_F19
+  else if SameText(KeyStr, 'F20') then
+    Result := VK_F20
+  else if SameText(KeyStr, 'F21') then
+    Result := VK_F21
+  else if SameText(KeyStr, 'F22') then
+    Result := VK_F22
+  else if SameText(KeyStr, 'F23') then
+    Result := VK_F23
+  else if SameText(KeyStr, 'F24') then
+    Result := VK_F24
+  // Цифровые клавиши
+  else if (Length(KeyStr) = 1) and (KeyStr[1] in ['0'..'9']) then
+    Result := Ord(KeyStr[1])
+  // Буквенные клавиши (A-Z)
+  else if (Length(KeyStr) = 1) and (KeyStr[1] in ['A'..'Z']) then
+    Result := Ord(KeyStr[1])
 
-if Application.FindComponent('FormHotKeys') = nil then
-  Application.CreateForm(TFormHK, FormHK);
-
+  // Символьные клавиши (для международных раскладок)
+  else if SameText(KeyStr, ',' {'OemComma'}) or SameText(KeyStr, ',') then
+    Result := VK_OEM_COMMA
+  else if SameText(KeyStr, '.' {'OemPeriod'}) or SameText(KeyStr, '.') then
+    Result := VK_OEM_PERIOD
+  else if SameText(KeyStr, '-' {'OemMinus'}) or SameText(KeyStr, '-') then
+    Result := VK_OEM_MINUS
+  else if SameText(KeyStr, '+' {'OemPlus'}) or SameText(KeyStr, '+') then
+    Result := VK_OEM_PLUS
+  else if SameText(KeyStr, ';' {'Oem1'}) or SameText(KeyStr, ';') then
+    Result := VK_OEM_1
+  else if SameText(KeyStr, '/' {'Oem2'}) or SameText(KeyStr, '/') then
+    Result := VK_OEM_2
+  else if SameText(KeyStr, '`' {'Oem3'}) or SameText(KeyStr, '`') then
+    Result := VK_OEM_3
+  else if SameText(KeyStr, '[' {'Oem4'}) or SameText(KeyStr, '[') then
+    Result := VK_OEM_4
+  else if SameText(KeyStr, '\' {'Oem5'}) or SameText(KeyStr, '\') then
+    Result := VK_OEM_5
+  else if SameText(KeyStr, ']' {'Oem6'}) or SameText(KeyStr, ']') then
+    Result := VK_OEM_6
+  else if SameText(KeyStr, '''' {'Oem7'}) or SameText(KeyStr, '''') then
+    Result := VK_OEM_7
+  else
+    Result := 0; // Неизвестная клавиша
 end;
 
 
 
-
-
-
-{$REGION ' Form '}
-
-
-
-
-
-//------------------------------------------------------------------------------ Edit1 Key Down
-procedure TFormHK.Edit1KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+//------------------------------------------------------------------------------
+procedure StrToKeyMod(ShortcutStr: string; var vKey, vMod: word);
 var
-  sMod, sKey: string;
+k: word;
+KeyPart: string;
 
 begin
 
-//if (Key = 9) and (ActiveControl = Self) then begin
-//  //РЅРµ СЂР°Р±РѕС‚Р°РµС‚!
-//  Perform(CM_DialogKey, VK_TAB, 0);
-//  ActiveControl := Self;
-//  Self.SetFocus;
-//end;
+vKey := 0;
+vMod := 0;
 
+if ShortcutStr = '' then Exit;
 
-sMod := ModToStr;
-sKey := KeyToStr(Key);
-
-_KeyDown := sKey <> '';
-
-Edit1.text := sMod + sKey;
-ModToCheckBox;
-FormHK.ComboBox1.ItemIndex := FormHK.ComboBox1.Items.IndexOf(sKey);
-
-end;
-
-
-
-//------------------------------------------------------------------------------ Edit1 Key Up
-procedure TFormHK.Edit1KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+// Обработка модификаторов
+if Pos('Win+', ShortcutStr) <> 0 then
 begin
-
-if not _KeyDown then begin
-  ModToCheckBox('');
-  Edit1.text := '';
+  vMod := vMod or MOD_WIN;
+  ShortcutStr := StringReplace(ShortcutStr, 'Win+', '', [rfReplaceAll]);
 end;
 
-//if (KeyToStr(Key) = '') and (ModToStr = '') then
-
-end;
-
-
-
-
-
-
-
-
-
-//------------------------------------------------------------------------------ ComboBox Change
-procedure TFormHK.ComboBox1Change(Sender: TObject);
-var
-p: integer;
-s: string;
-sKey, sMod: word;
-
+if Pos('Shift+', ShortcutStr) <> 0 then
 begin
-
-StrToKeyMod(Edit1.Text, sKey, sMod);
-Edit1.Text := ModToStr(sMod) + ComboBox1.Text;
-
+  vMod := vMod or MOD_SHIFT;
+  ShortcutStr := StringReplace(ShortcutStr, 'Shift+', '', [rfReplaceAll]);
 end;
 
-
-
-//------------------------------------------------------------------------------ ComboBox KeyDown
-procedure TFormHK.ComboBox1KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-var
-s: string;
-//k: Word;
-
+if Pos('Ctrl+', ShortcutStr) <> 0 then
 begin
-s := KeyToStr(Key);
-//k := Key;
-
-
-
-
-
-ComboBox1.ItemIndex := ComboBox1.Items.IndexOf(s);
-
-//if Key = VK_TAB then ActiveControl := ComboBox1; //РЅРµ СЂР°Р±РѕС‚Р°РµС‚
-Key := 0; //С‡С‚РѕР±С‹ РЅРµ РѕР±СЂР°Р±Р°С‚С‹РІР°С‚СЊ РєР»Р°РІРёС€Рё Up, Down, Left, Right, Home, End, PgUp, PgDown,
+  vMod := vMod or MOD_CONTROL;
+  ShortcutStr := StringReplace(ShortcutStr, 'Ctrl+', '', [rfReplaceAll]);
 end;
 
-
-
-
-
-
-
-
-
-
-//------------------------------------------------------------------------------ chWin
-procedure TFormHK.chWinClick(Sender: TObject);
-var
-p: integer;
-s: string;
-sKey, sMod: word;
-
+if Pos('Alt+', ShortcutStr) <> 0 then
 begin
-
-if chWin.Checked
-
-then begin
-  StrToKeyMod(Edit1.Text, sKey, sMod);
-  sMod := MOD_WIN xor sMod;
-  Edit1.Text := ModToStr(sMod) + KeyToStr(sKey);
-end
-
-else begin
-  s := Edit1.Text;
-  p := pos('Win+', Edit1.Text);
-  if p <> 0 then Delete(s, p, 4);
-  Edit1.Text := s;
-end;
-
+  vMod := vMod or MOD_ALT;
+  ShortcutStr := StringReplace(ShortcutStr, 'Alt+', '', [rfReplaceAll]);
 end;
 
 
+//yy(ShortcutStr);
 
-//------------------------------------------------------------------------------ chCtrl
-procedure TFormHK.chCtrlClick(Sender: TObject);
-var
-p: integer;
-s: string;
-sKey, sMod: word;
-
+// Обработка клавиши немодификатора
+k := StrToKey(ShortcutStr);
+if k <> 0
+then
 begin
-
-if chCtrl.Checked
-
-then begin
-  StrToKeyMod(Edit1.Text, sKey, sMod);
-  sMod := MOD_CONTROL xor sMod;
-  Edit1.Text := ModToStr(sMod) + KeyToStr(sKey);
-end
-
-else begin
-  s := Edit1.Text;
-  p := pos('Ctrl+', Edit1.Text);
-  if p <> 0 then Delete(s, p, 5);
-  Edit1.Text := s;
-end;
-
-
-end;
-
-
-
-//------------------------------------------------------------------------------ chShift
-procedure TFormHK.chShiftClick(Sender: TObject);
-var
-p: integer;
-s: string;
-sKey, sMod: word;
-
-begin
-
-if chShift.Checked
-
-then begin
-  StrToKeyMod(Edit1.Text, sKey, sMod);
-  sMod := MOD_SHIFT xor sMod;
-  Edit1.Text := ModToStr(sMod) + KeyToStr(sKey);
-end
-
-else begin
-  s := Edit1.Text;
-  p := pos('Shift+', Edit1.Text);
-  if p <> 0 then Delete(s, p, 6);
-  Edit1.Text := s;
+  vKey := k;
 end;
 
 end;
 
-
-
-//------------------------------------------------------------------------------ chAlt
-procedure TFormHK.chAltClick(Sender: TObject);
-var
-p: integer;
-s: string;
-sKey, sMod: word;
-
-begin
-
-if chAlt.Checked
-
-then begin
-  StrToKeyMod(Edit1.Text, sKey, sMod);
-  sMod := MOD_ALT xor sMod;
-//  FormHotKeys.Caption := ModToStr(sMod) + '|||' + KeyToStr(sKey);
-  Edit1.Text := ModToStr(sMod) + KeyToStr(sKey);
-end
-
-else begin
-  s := Edit1.Text;
-  p := pos('Alt+', Edit1.Text);
-  if p <> 0 then Delete(s, p, 4);
-  Edit1.Text := s;
-end;
-
-end;
-
-
-
-//------------------------------------------------------------------------------ Moding To CheckBox
-procedure TFormHK.ModToCheckBox(const ModStr: string = '');
-begin
-if ModStr <> '' then begin
-  chCtrl.Checked  := pos('Ctrl',  ModStr) <> 0;
-  chShift.Checked := pos('Shift', ModStr) <> 0;
-  chAlt.Checked   := pos('Ctrl',  ModStr) <> 0;
-  chWin.Checked   := pos('Win',   ModStr) <> 0;
-  exit;
-end;
-
-chCtrl.Checked  := CtrlDown;
-chShift.Checked := ShiftDown;
-chAlt.Checked   := AltDown;
-chWin.Checked   := WinDown;
-end;
-
-
-
-
-
-
-
-
-
-
-//------------------------------------------------------------------------------ btnAdd
-procedure TFormHK.btnAddClick(Sender: TObject);
-begin
-if ListBox1.Items.IndexOf(Edit1.Text) <> -1 then exit;
-
-ListBox1.Items.Add(Edit1.Text)
-end;
-
-
-
-
-//------------------------------------------------------------------------------ btnDel
-procedure TFormHK.btnDelClick(Sender: TObject);
-var
-  i, r: Integer;
-
-//  function isItemSelected(iItem: integer): Boolean;
-//  begin
-//    Result := ListBox1.Selected[iItem];
-//  end;
-
-begin
-
-//r := List_SmartSelectAfterDeleteMulti(ListBox1.ItemIndex, ListBox1.Count, @isItemSelected) ;
-
-
-for i := ListBox1.Count - 1 downto 0
-do
-begin
-   if ListBox1.Selected[i]
-   then
-   begin
-     ListBox1.Items.Delete(i);
-   end;
-end;
-
-
-
-//if ListBox1.Count > 0 then begin
-//  ListBox1.ItemIndex := r;
-//  ListBox1.Selected[r] := True;
-//end;
-
-end;
-
-
-
-
-
-
-{$ENDREGION}
-
-
-
-
-
-
-{$REGION '  Uni  Key ~ Mod ~ Str  '}
-{
-Key - РєР»Р°РІРёС€Р°
-Mod - РєР»Р°РІРёС€Р° РјРѕРґРёС„РёРєР°С‚РѕСЂ Ctrl, Shift, Alt, Win
-ShiftState - РЅР°Р±РѕСЂ РјРѕРґРёС„РёРєР°С‚РѕСЂРѕРІ ssCtrl, ssShift, ssAlt. Р‘Р•Р— РєР»Р°РІРёС€Рё Win
-
-ShortCutToText - uses Vcl.Menus
-GetKeyNameText - uese Winapi.Windows
-}
 
 //------------------------------------------------------------------------------ Str To KeyMod
-procedure StrToKeyMod(ShortcutStr: string; var vKey, vMod: word);
-var k:word;
+procedure StrToKeyMod2(ShortcutStr: string; var vKey, vMod: word);
+var k: word;
 begin
 
- vMod := 0;
- if pos('Win+',  ShortcutStr)<>0 then vMod :=MOD_WIN or vMod;
- if pos('Shift+',ShortcutStr)<>0 then vMod :=MOD_SHIFT or vMod;
- if pos('Ctrl+', ShortcutStr)<>0 then vMod :=MOD_CONTROL or vMod;
- if pos('Alt+',  ShortcutStr)<>0 then vMod :=MOD_ALT or vMod;
+if ShortcutStr <> '' then exit;
 
-if vMod <> 0 then begin
-  if pos('Win+',  ShortcutStr)<>0 then Delete(ShortcutStr, pos('Win+',  ShortcutStr),4);
-  if pos('Shift+',ShortcutStr)<>0 then Delete(ShortcutStr, pos('Shift+',ShortcutStr),6);
-  if pos('Ctrl+', ShortcutStr)<>0 then Delete(ShortcutStr, pos('Ctrl+', ShortcutStr),5);
-  if pos('Alt+',  ShortcutStr)<>0 then Delete(ShortcutStr, pos('Alt+',  ShortcutStr),4);
-end;
+//vMod := 0;
+if pos('Win+',  ShortcutStr)<>0 then vMod := vMod or MOD_WIN;
+if pos('Shift+',ShortcutStr)<>0 then vMod := vMod or MOD_SHIFT;
+if pos('Ctrl+', ShortcutStr)<>0 then vMod := vMod or MOD_CONTROL;
+if pos('Alt+',  ShortcutStr)<>0 then vMod := vMod or MOD_ALT;
 
-
+////if vMod <> 0 then begin
+//  if pos('Win+',  ShortcutStr)<>0 then Delete(ShortcutStr, pos('Win+',  ShortcutStr),4);
+//  if pos('Shift+',ShortcutStr)<>0 then Delete(ShortcutStr, pos('Shift+',ShortcutStr),6);
+//  if pos('Ctrl+', ShortcutStr)<>0 then Delete(ShortcutStr, pos('Ctrl+', ShortcutStr),5);
+//  if pos('Alt+',  ShortcutStr)<>0 then Delete(ShortcutStr, pos('Alt+',  ShortcutStr),4);
+//end;
 
 
 for k := 3 to 226 do
   if pos(ShortcutStr, KeyToStr(k)) <> 0 then begin
-   vKey := k;
+    vKey := k;
 //   yy(ShortcutString+'|||'+Chr(vkey));
-   break;
+    Break;
   end;
 
 end;
@@ -429,89 +262,86 @@ end;
 
 //------------------------------------------------------------------------------ Key To Str
 function KeyToStr(Key: word): string;
-//СЃРїР°СЃРёР±Рѕ n0wheremany
-var sKey: String;
+//спасибо n0wheremany
 begin
 
 case key of
-     3:sKey:='Scroll Lock';
-     8:sKey:='BackSpace';
-     9:sKey:='Tab';
-    12:sKey:='Num 5';
-    13:sKey:='Enter';
+     3: Result := 'Scroll Lock';
+     8: Result := 'BackSpace';
+     9: Result := 'Tab';
+    12: Result := 'Num 5';
+    13: Result := 'Enter';
 
-    20:sKey:='Caps Lock';
-    27:sKey:='Esc';
-    32:sKey:='Space';
-    33:sKey:='PgUp';
-    34:sKey:='PgDn';
-    35:sKey:='End';
-    36:sKey:='Home';
-    37:sKey:='Left';
-    38:sKey:='Up';
-    39:sKey:='Right';
-    40:sKey:='Down';
-    44:sKey:='PrintScreen';
-    45:sKey:='Ins';
-    46:sKey:='Del';
+    20: Result := 'Caps Lock';
+    27: Result := 'Esc';
+    32: Result := 'Space';
+    33: Result := 'PgUp';
+    34: Result := 'PgDn';
+    35: Result := 'End';
+    36: Result := 'Home';
+    37: Result := 'Left';
+    38: Result := 'Up';
+    39: Result := 'Right';
+    40: Result := 'Down';
+    44: Result := 'PrintScreen';
+    45: Result := 'Ins';
+    46: Result := 'Del';
 
     48..57,
-    65..90 :sKey:=Chr(key);
+    65..90: Result := Chr(key);
 
-    96..105:sKey:='Num '+inttostr(key-96);
+    96..105: Result := 'Num ' + inttostr(key-96);
 
-   106:sKey:='Num *';
-   107:sKey:='Num +';
-   109:sKey:='Num -';
-   110:sKey:='Num Del';
-   111:sKey:='Num /';
+   106: Result := 'Num *';
+   107: Result := 'Num +';
+   109: Result := 'Num -';
+   110: Result := 'Num Del';
+   111: Result := 'Num /';
 
-   112..135:sKey:='F'+inttostr(key-111);
+   112..135: Result := 'F' + inttostr(key-111);
 
-   144:sKey:='PauseBreak';
-   145:sKey:='ScrollLock';
+   144: Result := 'PauseBreak';
+   145: Result := 'ScrollLock';
 
-   172:sKey:='M';
-   173:sKey:='D';
-   174:sKey:='C';
-   175:sKey:='B';
-   176:sKey:='P';
-   177:sKey:='Q';
-   178:sKey:='J';
-   179:sKey:='G';
-   183:sKey:='F';
+   172: Result := 'M';
+   173: Result := 'D';
+   174: Result := 'C';
+   175: Result := 'B';
+   176: Result := 'P';
+   177: Result := 'Q';
+   178: Result := 'J';
+   179: Result := 'G';
+   183: Result := 'F';
 
-   186:sKey:=';';
-   187:sKey:='=';
-   188:sKey:='<';
-   190:sKey:='>';
-   189:sKey:='-';
-   192:sKey:='~';
-   194:sKey:='F15';
-   219:sKey:='[';
-   221:sKey:=']';
-   222:sKey:='''';
+   186: Result := ';';
+   187: Result := '=';
+   188: Result := '<';
+   190: Result := '>';
+   189: Result := '-';
+   192: Result := '~';
+//   194: Result := 'F15';
+   219: Result := '[';
+   221: Result := ']';
+   222: Result := '''';
 
-   191:sKey:='/';
-   220:sKey:='\';
-   226:sKey:='\';
+   191: Result := '/';
+   220: Result := '\';
+   226: Result := '\';
 
    else
    begin
-     sKey:='';
+     Result := '';
 //     exit;
    end;
 
 end;
 
-Result := sKey;
 
 end;
 
 
 //------------------------------------------------------------------------------ Mod To Str
 function ModToStr: string; overload;
-var s: String;
 begin
 
 Result := '';
@@ -535,10 +365,10 @@ begin
 
 Result := '';
 
-if (sMod = MOD_WIN or sMod)     then Result := 'Win+';
-if (sMod = MOD_CONTROL or sMod) then Result := Result + 'Ctrl+';
-if (sMod = MOD_SHIFT or sMod)   then Result := Result + 'Shift+';
-if (sMod = MOD_ALT or sMod)     then Result := Result + 'Alt+';
+if (sMod = sMod or MOD_WIN)     then Result := 'Win+';
+if (sMod = sMod or MOD_CONTROL) then Result := Result + 'Ctrl+';
+if (sMod = sMod or MOD_SHIFT)   then Result := Result + 'Shift+';
+if (sMod = sMod or MOD_ALT)     then Result := Result + 'Alt+';
 
 end;
 
@@ -550,15 +380,14 @@ end;
 
 
 
-
-{$REGION '  Uni Key Down  '}
+{$REGION '  Key Down  '}
 
 
 
 //------------------------------------------------------------------------------ Key Downly
 function KeyDownly(Key: integer): Boolean;
 {
-РІР¶Р°С‚Р° Р»Рё РєР»Р°РІРёС€Р°?
+вжата ли клавиша?
 Ctrl  = VK_Control
 Shift = VK_Shift
 Alt   = VK_Menu
@@ -571,17 +400,15 @@ begin
 
 GetKeyboardState(State);
 Result := ( (State[Key] and 128) <> 0 );
-
-
 //Result := HiWord(GetKeyState(Key)) <> 0 ;
 
 end;
 
 
 
-//------------------------------------------------------------------------------ Ctrl
+//------------------------------------------------------------------------------ Ctrl Down
 function CtrlDown: Boolean;
-//РІР¶Р°С‚Р° Р»Рё РєР»Р°РІРёС€Р° Ctrl?
+//вжата ли клавиша Ctrl?
 begin
 
 Result := KeyDownly(VK_CONTROL);
@@ -590,9 +417,9 @@ end;
 
 
 
-//------------------------------------------------------------------------------ Shift
+//------------------------------------------------------------------------------ Shift Down
 function ShiftDown: Boolean;
-//РІР¶Р°С‚Р° Р»Рё РєР»Р°РІРёС€Р° Shift?
+//вжата ли клавиша Shift?
 begin
 
 Result := KeyDownly(VK_SHIFT);
@@ -601,9 +428,9 @@ end;
 
 
 
-//------------------------------------------------------------------------------ Alt
+//------------------------------------------------------------------------------ Alt Down
 function AltDown: Boolean;
-//РІР¶Р°С‚Р° Р»Рё РєР»Р°РІРёС€Р° Alt?
+//вжата ли клавиша Alt?
 begin
 
 Result := KeyDownly(VK_MENU);
@@ -612,9 +439,9 @@ end;
 
 
 
-//------------------------------------------------------------------------------ Win
+//------------------------------------------------------------------------------ Win Down
 function WinDown: Boolean;
-//РІР¶Р°С‚Р° Р»Рё РєР»Р°РІРёС€Р° Alt?
+//вжата ли клавиша Win?
 begin
 
 Result := KeyDownly(VK_LWIN) or KeyDownly(VK_RWIN);
@@ -624,12 +451,173 @@ end;
 
 
 
+
+
+//------------------------------------------------------------------------------ not CSA
+function NoCSA: Boolean;
+begin
+
+Result := not CtrlDown
+      and not ShiftDown
+      and not AltDown;
+
+end;
+
+
+
+
+
+//------------------------------------------------------------------------------ Ctrl Only
+function CtrlOnly: Boolean;
+begin
+
+Result := CtrlDown
+  and not ShiftDown
+  and not AltDown;
+
+end;
+
+
+
+//------------------------------------------------------------------------------ Shift Only
+function ShiftOnly: Boolean;
+begin
+
+Result := ShiftDown
+  and not CtrlDown
+  and not AltDown;
+
+end;
+
+
+
+//------------------------------------------------------------------------------ Alt Only
+function AltOnly: Boolean;
+begin
+
+Result := AltDown
+  and not CtrlDown
+  and not ShiftDown;
+
+end;
+
+
+
+//------------------------------------------------------------------------------ ModDown
+function ModDown(AMods: string): Boolean;
+begin
+
+//if AMods = '' then begin
+//  Result := not WinDown and not CtrlDown and not ShiftDown and not AltDown;
+////  yy(AMOds);
+//
+//  exit;
+//end;
+
+Result := True;
+AMods := AnsiLowerCase(AMods);
+
+if (pos('c', AMods) = 0) = CtrlDown then begin
+  Result := False;
+  exit;
+ end;
+
+
+if (pos('s', AMods) = 0) = ShiftDown then begin
+    Result := False;
+    exit;
+end;
+
+
+if (pos('a', AMods) = 0) = AltDown then begin
+  Result := False;
+  exit;
+end;
+
+
+if (pos('w', AMods) = 0) = WinDown then begin
+  Result := False;
+  exit;
+end;
+
+
+
+//if pos('c', AMods) <> 0 then begin
+//  if not CtrlDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end
+//else begin
+//   if CtrlDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end;
+//
+//
+//
+//if pos('s', AMods) <> 0 then begin
+//  if not ShiftDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end
+//else begin
+//   if ShiftDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end;
+//
+//
+//if pos('a', AMods) <> 0 then begin
+//  if not AltDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end
+//else begin
+//   if AltDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end;
+//
+//
+//if pos('w', AMods) <> 0 then begin
+//  if not WinDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end
+//else begin
+//   if WinDown then begin
+//    Result := False;
+//    exit;
+//  end;
+////  Result := True;
+//end;
+//
+//
+
+
+end;
+
+
 //------------------------------------------------------------------------------ KeyDownEmulate
 procedure KeyDownEmulate(Component: TComponent;  Key: Word; Shift: TShiftState = []);
 var k: word;
 begin
 
-//СЌРјСѓР»РёСЂСѓРµРј РЅР°Р¶Р°С‚РёРµ РєР»Р°РІРёС€Рё С‡С‚РѕР± РІСЃС‘ СЃСЂР°Р±РѕС‚Р°Р»Рѕ С‚РѕС‡РЅРѕ С‚Р°РєР¶Рµ РєР°Рє Рё РІ kuShellListView.pas
+//эмулируем нажатие клавиши чтоб всё сработало точно также как и в kuShellListView.pas
 k := Key;
 //LVS.KeyDown(k, []);
 
